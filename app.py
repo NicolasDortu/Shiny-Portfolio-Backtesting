@@ -6,13 +6,12 @@ import plotly.express as px
 
 from shinywidgets import render_plotly
 from shiny import reactive
-from shiny.express import input, render, ui
+from shiny.express import input, ui
 
 from pathlib import Path
 
-# add exception when the ticker is not available
 
-tickerspath = Path(__file__).parent / "tickers" / "tickerstest.csv"
+tickerspath = Path(__file__).parent / "tickers" / "tickers.csv"
 tickersList = pd.read_csv(tickerspath)
 
 # UI Elements
@@ -35,13 +34,23 @@ with ui.sidebar(title="Parameters"):
 
 
 def getData(stocks, start, end):
-    stockData = yf.download(stocks, start=start, end=end)
-    stockData = stockData["Adj Close"]
-    stockData = (
-        stockData.ffill().bfill()
-    )  # Forward fill, then backward fill (in case value is missing)
-    returns = stockData.pct_change().dropna()  # Drop NaN values from returns
-    return returns, stockData
+    try:
+        stockData = yf.download(stocks, start=start, end=end)
+        if stockData.empty:
+            raise ValueError(
+                f"Data for ticker(s) {', '.join(stocks)} could not be downloaded."
+            )
+
+        stockData = stockData["Adj Close"]
+        stockData = (
+            stockData.ffill().bfill()
+        )  # Forward fill, then backward fill (in case value is missing)
+        returns = stockData.pct_change().dropna()  # Drop NaN values from returns
+        return returns, stockData
+
+    except Exception as e:
+        ui.notification_show(f"Error: {str(e)}", type="error", duration=5000)
+        return None, None
 
 
 @render_plotly
