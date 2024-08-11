@@ -1,6 +1,5 @@
 shiny
 shinywidgets
-faicons
 numpy
 pandas
 plotly
